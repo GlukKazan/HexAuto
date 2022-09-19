@@ -10,7 +10,6 @@ const URL_A = 'https://games.dtco.ru/hex-a/model.json';
 const URL_B = 'https://games.dtco.ru/hex-b/model.json';
 
 var winston = require('winston');
-const { util } = require('@tensorflow/tfjs');
 require('winston-daily-rotate-file');
 
 const logFormat = winston.format.combine(
@@ -101,8 +100,8 @@ async function run() {
     }
     const t1 = Date.now();
 
-    console.log('Total: ' + w + '/' + l + ' (' + w + l + '), time = ' + (t1 - t0) / 1000);
-    logger.info('Total: ' + w + '/' + l + ' (' + w + l + '), time = ' + (t1 - t0) / 1000);
+    console.log('Total: ' + w + '/' + l + ' (' + (+w + +l) + '), time = ' + (t1 - t0) / 1000);
+    logger.info('Total: ' + w + '/' + l + ' (' + (+w + +l) + '), time = ' + (t1 - t0) / 1000);
 }
 
 (async () => { await run(); })();

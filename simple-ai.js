@@ -14,7 +14,7 @@ function ai(size, model) {
 ai.prototype.move = async function(board, player) {
     let b = new Float32Array(this.size * this.size);
     for (let pos = 0; pos < this.size * this.size; pos++) {
-        b[utils.flip(pos, this.size, player)] = board[pos] * player;
+        b[pos] = board[pos] * player;
     }
 
     let m = utils.getMoves(b, this.size);

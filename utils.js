@@ -203,17 +203,9 @@ function checkGoal(board, player, size) {
     return null;
 }
 
-function flip(pos, size, player) {
-    if (player > 0) return pos;
-    const x = pos % size;
-    const y = (pos / size) | 0;
-    return x * size + y;
-}
-
 module.exports.dump = dump;
 module.exports.getFen = getFen;
 module.exports.InitializeFromFen = InitializeFromFen;
 module.exports.FormatMove = FormatMove;
 module.exports.getMoves = getMoves;
 module.exports.checkGoal = checkGoal;
-module.exports.flip = flip;
