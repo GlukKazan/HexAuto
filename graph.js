@@ -52,6 +52,26 @@ function see(g) {
     }
 }
 
+// See: https://neerc.ifmo.ru/wiki/index.php?title=Схема_алгоритма_Диница
+function bfs(c) {
+    let f = empty();
+    let d = new Int32Array(N);
+    let q = [S];
+    for (let i = 0; i < N; i++) d[i] = -1;
+    d[S] = 0;
+    while (q.length > 0) {
+        const u = q.pop();
+        for (let v = 0; v < N; v++) {
+            if (c[u][v] == 0) continue;
+            if ((f[v][v] < c[u][v]) && (d[v] < 0)) {
+                d[v] = d[u] + 1;
+                q.push(v);
+            }
+        }
+    }
+    return d[T] * 100;
+}
+
 // See: https://sites.google.com/site/indy256/algo/ford_fulkerson
 function maxFlow(g) {
     let flow = 0;
@@ -60,7 +80,7 @@ function maxFlow(g) {
         if (df == 0) break;
         flow += df;
     }
-    return flow;
+    return flow * 1000;
 }
 
 function findPath(cap, vis, u, t, f) {
@@ -80,13 +100,11 @@ function findPath(cap, vis, u, t, f) {
 }
 
 function estimate(board, player) {
-    const a = create(board, player);
-    const b = create(board, -player);
-    const f = maxFlow(a);
-    const e = maxFlow(b);
+    const f = maxFlow(create(board, player)) + bfs(create(board, player));
+    const e = maxFlow(create(board, -player)) + bfs(create(board, -player));
     if (f == 0) return -INF;
     if (e == 0) return INF;
-    return (f - e) * 100;
+    return f - e;
 }
 
 module.exports.estimate = estimate;

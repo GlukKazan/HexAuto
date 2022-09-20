@@ -4,7 +4,7 @@ const graph = require('./graph');
 const utils = require('./utils');
 
 const SIZE   = 11;
-const FEN    = '92/92/1a9/92/1AaAaAb3/1AaAbA4/1AaA2A4/1Ac6/1AaA7/92/A91';
+const FEN    = '3A7/92/2a2A5/7A1Aa/A2AaAbAaA/4bAbA1/1Ab7/92/92/92/2A8';
 const PLAYER = 1;
 
 async function run() {
