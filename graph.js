@@ -23,21 +23,40 @@ function check(board, player, r, pos, dir) {
     r[q][pos] = 1;
 }
 
-function create(board, player) {
+function bridge(board, player, r, pos, a, b) {
+    if (board[pos] * player <= 0) return;
+    if (board[pos + a] != 0) return;
+    if (board[pos + b] != 0) return;
+    const q = pos + a + b;
+    if (board[q] * player <= 0) return;
+    r[pos][q] = 1;
+    r[q][pos] = 1;
+}
+
+function create(board, player, f) {
     let r = empty();
     for (let y = 0; y < SIZE; y++) {
         for (let x = 0; x < SIZE; x++) {
             const pos = y * SIZE + x;
             if (board[pos] * player < 0) continue;
             const ix = (player > 0) ? y : x;
-            if (ix == 0) r[S][pos] = 1;
-            if (ix == SIZE - 1) r[pos][T] = 1;
+            if (ix == 0) r[S][pos] = 10;
+            if (ix == SIZE - 1) r[pos][T] = 10;
             if (y > 0) check(board, player, r, pos, -SIZE);
             if ((y > 0) && (x < SIZE - 1)) check(board, player, r, pos, -SIZE + 1);
             if (x < SIZE - 1) check(board, player, r, pos, 1);
             if (y < SIZE - 1) check(board, player, r, pos, SIZE);
             if ((y < SIZE - 1) && (x > 0)) check(board, player, r, pos, SIZE - 1);
             if (x > 0) check(board, player, r, pos, -1);
+            if (f) {
+                if ((y > 0) && (x > 0)) bridge(board, player, r, pos, -SIZE, -1);
+                if ((y > 1) && (x < SIZE - 1)) bridge(board, player, r, pos, -SIZE, - SIZE + 1);
+                if ((y > 0) && (x < SIZE - 2)) bridge(board, player, r, pos, -SIZE + 1, 1);
+                if ((y < SIZE - 1) && (x < SIZE - 1)) bridge(board, player, r, pos, 1, SIZE);
+                if ((y < SIZE - 2) && (x > 0)) bridge(board, player, r, pos, SIZE, SIZE - 1);
+                if ((y < SIZE - 1) && (x > 1)) bridge(board, player, r, pos, SIZE - 1, -1);
+                // TODO: Half Briges
+            }
         }
     }
     return r;
@@ -100,8 +119,8 @@ function findPath(cap, vis, u, t, f) {
 }
 
 function estimate(board, player) {
-    const f = maxFlow(create(board, player)) + bfs(create(board, player));
-    const e = maxFlow(create(board, -player)) + bfs(create(board, -player));
+    const f = maxFlow(create(board, player, true)) - bfs(create(board, player, false));
+    const e = maxFlow(create(board, -player, true)) - bfs(create(board, -player, false));
     if (f == 0) return -INF;
     if (e == 0) return INF;
     return f - e;
