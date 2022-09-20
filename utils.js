@@ -98,7 +98,7 @@ function InitializeFromFen(fen, board, size, player) {
                     }
                     ix++;
                     for (; ix > 0; ix--) {
-                        board[pos] = -p;// <--
+                        board[pos] = p;
                         pos++;
                     }
                 }
