@@ -32,6 +32,26 @@ function dump(board, size, offset, moves) {
     console.log('');
 }
 
+function map(dist, size) {
+    for (let y = 0; y < size; y++) {
+        let s = '';
+        for (let i = 0; i <= y; i++) {
+            s = s + ' ';
+        }
+        for (let x = 0; x < size; x++) {
+            const pos = y * size + x;
+            if (_.isUndefined(dist[pos])) {
+                s = s + '.  ';
+            } else {
+                s = s + dist[pos] + ' ';
+                if (dist[pos] < 10) s = s + ' ';
+            }
+        }
+        console.log(s);
+    }
+    console.log('');
+}
+
 function pieceNotation(c, p, size) {
     if (p == 0) return '' + c;
     c--;
@@ -146,6 +166,10 @@ function navigate(pos, dir, size) {
     return pos + dir;
 }
 
+function getDirs(size) {
+    return [-size, -size + 1, 1, size, size - 1, -1];
+}
+
 function checkGoal(board, player, size) {
     if (edges === null) {
         edges = [];
@@ -171,7 +195,7 @@ function checkGoal(board, player, size) {
     let f = false;
     for (let i = 0; i < group.length; i++) {
         if (f) break;
-        _.each([-size, -size + 1, 1, size, size - 1, -1], function(dir) {
+        _.each(getDirs(size), function(dir) {
             const p = navigate(group[i], dir, size);
             if (p === null) return;
             if (_.indexOf(group, p) >= 0) return;
@@ -190,7 +214,7 @@ function checkGoal(board, player, size) {
     f = false;
     for (let i = 0; i < group.length; i++) {
         if (f) break;
-        _.each([-size, -size + 1, 1, size, size - 1, -1], function(dir) {
+        _.each(getDirs(size), function(dir) {
             const p = navigate(group[i], dir, size);
             if (p === null) return;
             if (_.indexOf(group, p) >= 0) return;
@@ -204,8 +228,11 @@ function checkGoal(board, player, size) {
 }
 
 module.exports.dump = dump;
+module.exports.map = map;
 module.exports.getFen = getFen;
 module.exports.InitializeFromFen = InitializeFromFen;
 module.exports.FormatMove = FormatMove;
 module.exports.getMoves = getMoves;
+module.exports.navigate = navigate;
+module.exports.getDirs = getDirs;
 module.exports.checkGoal = checkGoal;
