@@ -101,11 +101,9 @@ function distance(board, player) {
     }
     let r = INF;
     _.each(target, function(p) {
-        if (dist[p] < r) r = dist[p];
+        if (dist[p] * 100 < r) r = dist[p] * 100;
     });
-    utils.map(dist, SIZE);
-    console.log(r);
-    return r * 100;
+    return r;
 }
 
 function see(g) {

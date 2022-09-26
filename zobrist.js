@@ -76,7 +76,8 @@ function MT() {
 
     this.setSeed(0x1BADF00D);
 
-    this.next = function (bits)	{
+    this.next = function ()	{
+       const bits = 32;
        if (this.mti >= N) {
            let x = 0;
 
