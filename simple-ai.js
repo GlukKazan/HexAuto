@@ -3,12 +3,14 @@
 const _ = require('underscore');
 
 const model = require('./model');
-const hints = require('./forced');
+const forced = require('./forced');
+const hints = require('./hints');
 const utils = require('./utils');
 
-function ai(size, model) {
+function ai(size, model, mode) {
     this.size = size;
     this.model = model;
+    this.mode = mode;
 }
 
 ai.prototype.move = async function(board, player) {
@@ -26,7 +28,11 @@ ai.prototype.move = async function(board, player) {
 //  utils.dump(board, this.size, 0);
     let p = await model.predict(this.model, b, this.size);
 //  utils.dump(board, this.size, 0, p);
-    hints.analyze(board, player, this.size, p);
+    if (this.mode == 1) {
+        forced.analyze(board, player, this.size, p);
+    } else {
+        hints.analyze(board, player, this.size, p);
+    }
 //  utils.dump(board, this.size, 0, p);
 
     let r = [];

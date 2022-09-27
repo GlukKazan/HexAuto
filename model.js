@@ -2,14 +2,18 @@
 
 const tf = require('@tensorflow/tfjs');
 
+let model = null;
+
 async function init() {
     await tf.ready();
     console.log(tf.getBackend());
 }
 
 async function load(url) {
-    await init();
-    const model = await tf.loadLayersModel(url);
+    if (model === null) {
+        await init();
+        model = await tf.loadLayersModel(url);
+    }
     return model;
 }
 
