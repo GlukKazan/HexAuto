@@ -1,26 +1,28 @@
 "use strict";
 
+const _ = require('underscore');
+
 const model = require('./model');
-const hints = require('./forced');
+const hints = require('./hints');
 const graph = require('./graph');
-const z = require('./zobrist');
 const utils = require('./utils');
+const z = require('./zobrist');
 
-const MAX_PLY = 10;
+const MAX_PLY = 5; //10;
+const MAX_TIMEOUT = 5000;
 const NOISE_FACTOR = 0; //5;
-const g_timeout = 5000;
 
-const minEval = -100000;
-const maxEval = +100000;
-const minMateBuffer = minEval + 2000;
-const maxMateBuffer = maxEval - 2000;
+const MIN_AVAL = -100000;
+const MAX_EVAL = +100000;
+const MIN_MATE = MIN_AVAL + 2000;
+const MAX_MATE = MAX_EVAL - 2000;
 
-const g_hashSize = 1 << 22;
-const g_hashMask = g_hashSize - 1;
+const HASH_SIZE = 1 << 22;
+const HASH_MASK = HASH_SIZE - 1;
 
-const hashflagAlpha = 1;
-const hashflagBeta  = 2;
-const hashflagExact = 3;
+const FLAG_ALPHA = 1;
+const FLAG_BETA  = 2;
+const FLAG_EXACT = 3;
 
 function HashEntry(lock, value, flags, hashDepth, bestMove) {
     this.lock = lock;
@@ -53,69 +55,71 @@ ai.prototype.move = async function(board, player) {
 }
 
 ai.prototype.resetGame = function() {
-    this.g_searchValid = true;
-    this.g_startTime = (new Date()).getTime();
-    this.g_nodeCount = 0;
-    this.g_hashTable = new Array(g_hashSize);
+    this.searchValid = true;
+    this.startTime = (new Date()).getTime();
+    this.nodeCount = 0;
+    this.hashTable = new Array(HASH_SIZE);
 
     let mt = z.create();
-    this.g_zobristLow = new Array(this.size * this.size);
-    this.g_zobristHigh = new Array(this.size * this.size);
+    this.zobristLow = new Array(this.size * this.size);
+    this.zobristHigh = new Array(this.size * this.size);
     for (let i = 0; i < this.size * this.size; i++) {
-        this.g_zobristLow[i] = new Array(2);
-        this.g_zobristHigh[i] = new Array(2);
+        this.zobristLow[i] = new Array(2);
+        this.zobristHigh[i] = new Array(2);
         for (let j = 0; j < 2; j++) {
-            this.g_zobristLow[i][j] = mt.next();
-            this.g_zobristHigh[i][j] = mt.next();
+            this.zobristLow[i][j] = mt.next();
+            this.zobristHigh[i][j] = mt.next();
         }
     }
-    this.g_zobristBlackLow = mt.next();
-    this.g_zobristBlackHigh = mt.next();
+    this.zobristBlackLow = mt.next();
+    this.zobristBlackHigh = mt.next();
 }
 
 ai.prototype.setHash = function() {
-    this.g_hashKeyLow = 0;
-    this.g_hashKeyHigh = 0;
+    this.hashKeyLow = 0;
+    this.hashKeyHigh = 0;
 
     for (let pos = 0; pos < this.size * this.size; pos++) {
         if (Math.abs(this.board[pos]) < 0.01) continue;
-        this.hashKeyLow ^= this.g_zobristLow[pos][this.board[pos] > 0.01 ? 1 : 0];
-        this.hashKeyHigh ^= this.g_zobristHigh[pos][this.board[pos] > 0.01 ? 1 : 0];
+        this.hashKeyLow ^= this.zobristLow[pos][this.board[pos] > 0.01 ? 1 : 0];
+        this.hashKeyHigh ^= this.zobristHigh[pos][this.board[pos] > 0.01 ? 1 : 0];
     }
     if (this.player < -0.01) {
-        this.hashKeyLow ^= this.g_zobristBlackLow;
-        this.hashKeyHigh ^= this.g_zobristBlackHigh;
+        this.hashKeyLow ^= this.zobristBlackLow;
+        this.hashKeyHigh ^= this.zobristBlackHigh;
     }
 }
 
 ai.prototype.search = function(maxPly) {
-    let alpha = minEval;
-    let beta = maxEval;
+    let alpha = MIN_AVAL;
+    let beta = MAX_EVAL;
     
     let bestMove = -1;
     let value;
     
-    for (let ply = 1; (ply <= maxPly) && this.g_searchValid; ply++) {
+    for (let ply = 1; (ply <= maxPly) && this.searchValid; ply++) {
         let tmp = this.alphaBeta(ply, 0, alpha, beta);
-        if (!this.g_searchValid) break;
+        if (!this.searchValid) break;
 
         value = tmp;
         if ((value > alpha) && (value < beta)) {
             alpha = value - 500;
             beta = value + 500;
 
-            if (alpha < minEval) alpha = minEval;
-            if (beta > maxEval) beta = maxEval;
-        } else if (alpha != minEval) {
-            alpha = minEval;
-            beta = maxEval;
+            if (alpha < MIN_AVAL) alpha = MIN_AVAL;
+            if (beta > MAX_EVAL) beta = MAX_EVAL;
+        } else if (alpha != MIN_AVAL) {
+            alpha = MIN_AVAL;
+            beta = MAX_EVAL;
             ply--;
         }
 
-        if (!_.isUndefined(this.g_hashTable[this.g_hashKeyLow & g_hashMask])) {
-            bestMove = this.g_hashTable[this.g_hashKeyLow & g_hashMask].bestMove;
+        if (!_.isUndefined(this.hashTable[this.hashKeyLow & HASH_MASK])) {
+            bestMove = this.hashTable[this.hashKeyLow & HASH_MASK].bestMove;
         }
-        console.log(utils.FormatMove(bestMove, this.size) + ', v = ' + value + ', t = ' + time + ', ply = ' + ply);
+
+        const t = (new Date()).getTime();
+        console.log(utils.FormatMove(bestMove, this.size) + ', v = ' + value + ', t = ' + (t - this.startTime)/1000 + ', ply = ' + ply);
     }
     return bestMove;
 }
@@ -146,38 +150,38 @@ ai.prototype.qSearch = function(alpha, beta, ply, depth) {
 ai.prototype.allCutNode = function(ply, depth, beta) {
     if (ply <= 0) return this.qSearch(beta - 1, beta, 0, depth + 1);
 
-    if ((this.g_nodeCount & 127) == 127) {
-        if ((new Date()).getTime() - this.g_startTime > g_timeout) {
+    if ((this.nodeCount & 127) == 127) {
+        if ((new Date()).getTime() - this.startTime > MAX_TIMEOUT) {
             // Time cutoff
-            this.g_searchValid = false;
+            this.searchValid = false;
             return beta - 1;
         }
     }
-    this.g_nodeCount++;
+    this.nodeCount++;
 
     // Mate distance pruning
-    if (minEval + depth >= beta) return beta;
-    if (maxEval - (depth + 1) < beta) return beta - 1;
+    if (MIN_AVAL + depth >= beta) return beta;
+    if (MAX_EVAL - (depth + 1) < beta) return beta - 1;
 
     let hashMove = null;
-    let hashNode = this.g_hashTable[this.g_hashKeyLow & g_hashMask];
-    if (!_.isUndefined(hashMove) && !_.isUndefined(this.g_hashTable[this.g_hashKeyLow & g_hashMask])) {
+    let hashNode = this.hashTable[this.hashKeyLow & HASH_MASK];
+    if (!_.isUndefined(hashMove) && !_.isUndefined(this.hashTable[this.hashKeyLow & HASH_MASK])) {
         hashMove = hashNode.bestMove;
         if (hashNode.hashDepth >= ply) {
             let hashValue = hashNode.value;
 
             // Fixup mate scores
-            if (hashValue >= maxMateBuffer) hashValue -= depth;
-                else if (hashValue <= minMateBuffer) hashValue += depth;
+            if (hashValue >= MAX_MATE) hashValue -= depth;
+                else if (hashValue <= MIN_MATE) hashValue += depth;
 
-            if (hashNode.flags == hashflagExact) return hashValue;
-            if (hashNode.flags == hashflagAlpha && hashValue < beta) return hashValue;
-            if (hashNode.flags == hashflagBeta && hashValue >= beta) return hashValue;
+            if (hashNode.flags == FLAG_EXACT) return hashValue;
+            if (hashNode.flags == FLAG_ALPHA && hashValue < beta) return hashValue;
+            if (hashNode.flags == FLAG_BETA && hashValue >= beta) return hashValue;
         }
     }
 
     let moveMade = false;
-    let realEval = minEval - 1;
+    let realEval = MIN_AVAL - 1;
 
     let movePicker = new MovePicker(this, depth, false, hashMove);
     for (;;) {
@@ -204,11 +208,11 @@ ai.prototype.allCutNode = function(ply, depth, beta) {
         moveMade = true;
         this.unmakeMove(currentMove);
 
-        if (!this.g_searchValid) return beta - 1;
+        if (!this.searchValid) return beta - 1;
 
         if (value > realEval) {
             if (value >= beta) {
-                this.storeHash(value, hashflagBeta, ply, currentMove, depth);
+                this.storeHash(value, FLAG_BETA, ply, currentMove, depth);
                 return value;
             }
             realEval = value;
@@ -216,31 +220,31 @@ ai.prototype.allCutNode = function(ply, depth, beta) {
         }
     }
 
-    if (!moveMade) return minEval + depth;
+    if (!moveMade) return MIN_AVAL + depth;
 
-    this.storeHash(realEval, hashflagAlpha, ply, hashMove, depth);
+    this.storeHash(realEval, FLAG_ALPHA, ply, hashMove, depth);
     return realEval;
 }
 
 ai.prototype.alphaBeta = function(ply, depth, alpha, beta) {
     if (ply <= 0)return this.qSearch(alpha, beta, 0, depth + 1);
-    this.g_nodeCount++;
+    this.nodeCount++;
 
     // Mate distance pruning
     let oldAlpha = alpha;
-    alpha = alpha < minEval + depth ? alpha : minEval + depth;
-    beta = beta > maxEval - (depth + 1) ? beta : maxEval - (depth + 1);
+    alpha = alpha < MIN_AVAL + depth ? alpha : MIN_AVAL + depth;
+    beta = beta > MAX_EVAL - (depth + 1) ? beta : MAX_EVAL - (depth + 1);
     if (alpha >= beta) return alpha;
 
     let hashMove = null;
-    let hashFlag = hashflagAlpha;
-    let hashNode = this.g_hashTable[this.g_hashKeyLow & g_hashMask];
-    if (!_.isUndefined(hashNode) && (hashNode.lock == this.g_hashKeyHigh)) {
+    let hashFlag = FLAG_ALPHA;
+    let hashNode = this.hashTable[this.hashKeyLow & HASH_MASK];
+    if (!_.isUndefined(hashNode) && (hashNode.lock == this.hashKeyHigh)) {
         hashMove = hashNode.bestMove;
     }
 
     let moveMade = false;
-    let realEval = minEval;
+    let realEval = MIN_AVAL;
 
     let movePicker = new MovePicker(this, depth, false, hashMove);
 
@@ -269,17 +273,17 @@ ai.prototype.alphaBeta = function(ply, depth, alpha, beta) {
         moveMade = true;
         this.unmakeMove(currentMove);
 
-        if (!this.g_searchValid) return alpha;
+        if (!this.searchValid) return alpha;
 
         if (value > realEval) {
             if (value >= beta) {
-                this.storeHash(value, hashflagBeta, ply, currentMove, depth);
+                this.storeHash(value, FLAG_BETA, ply, currentMove, depth);
                 return value;
             }
         }
 
         if (value > oldAlpha) {
-            hashFlag = hashflagExact;
+            hashFlag = FLAG_EXACT;
             alpha = value;
         }
 
@@ -287,26 +291,26 @@ ai.prototype.alphaBeta = function(ply, depth, alpha, beta) {
         hashMove = currentMove;
     }
 
-    if (!moveMade) return minEval + depth;
+    if (!moveMade) return MIN_AVAL + depth;
 
     this.storeHash(realEval, hashFlag, ply, hashMove, depth);
     return realEval;
 }
 
 ai.prototype.storeHash = function(value, flags, ply, move, depth) {
-	if (value >= maxMateBuffer)
+	if (value >= MAX_MATE)
 		value += depth;
-	else if (value <= minMateBuffer)
+	else if (value <= MIN_MATE)
 		value -= depth;
-	this.g_hashTable[this.g_hashKeyLow & g_hashMask] = new HashEntry(this.g_hashKeyHigh, value, flags, ply, move);
+	this.hashTable[this.hashKeyLow & HASH_MASK] = new HashEntry(this.hashKeyHigh, value, flags, ply, move);
 }
 
 ai.prototype.makeMove = function(to) {
     const me = (this.player > 0) ? 0 : 1;
-    this.g_hashKeyLow ^= this.g_zobristLow[to][me];
-    this.g_hashKeyHigh ^= this.g_zobristHigh[to][me];
-    this.g_hashKeyLow ^= this.g_zobristBlackLow;
-    this.g_hashKeyHigh ^= this.g_zobristBlackHigh;
+    this.hashKeyLow ^= this.zobristLow[to][me];
+    this.hashKeyHigh ^= this.zobristHigh[to][me];
+    this.hashKeyLow ^= this.zobristBlackLow;
+    this.hashKeyHigh ^= this.zobristBlackHigh;
     this.board[to] = this.player;
     this.player = -this.player;
 }
@@ -314,10 +318,10 @@ ai.prototype.makeMove = function(to) {
 ai.prototype.unmakeMove = function(to) {
     this.player = -this.player;
     const me = (this.player > 0) ? 0 : 1;
-    this.g_hashKeyLow ^= this.g_zobristLow[to][me];
-    this.g_hashKeyHigh ^= this.g_zobristHigh[to][me];
-    this.g_hashKeyLow ^= this.g_zobristBlackLow;
-    this.g_hashKeyHigh ^= this.g_zobristBlackHigh;
+    this.hashKeyLow ^= this.zobristLow[to][me];
+    this.hashKeyHigh ^= this.zobristHigh[to][me];
+    this.hashKeyLow ^= this.zobristBlackLow;
+    this.hashKeyHigh ^= this.zobristBlackHigh;
     this.board[to] = 0;
 }
 
