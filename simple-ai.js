@@ -13,7 +13,7 @@ function ai(size, model, mode) {
     this.mode = mode;
 }
 
-ai.prototype.move = async function(board, player) {
+ai.prototype.move = async function(board, player, estimate) {
     let b = new Float32Array(this.size * this.size);
     for (let pos = 0; pos < this.size * this.size; pos++) {
         b[pos] = board[pos] * player;
@@ -27,11 +27,11 @@ ai.prototype.move = async function(board, player) {
 
 //  utils.dump(board, this.size, 0);
     let p = await model.predict(this.model, b, this.size);
-//  utils.dump(board, this.size, 0, p);
+//  utils.dump(board, this.size, 0, p.moves);
     if (this.mode == 1) {
-        forced.analyze(board, player, this.size, p);
+        forced.analyze(board, player, this.size, p.moves);
     } else {
-        hints.analyze(board, player, this.size, p);
+        hints.analyze(board, player, this.size, p.moves);
     }
 //  utils.dump(board, this.size, 0, p);
 
@@ -40,7 +40,7 @@ ai.prototype.move = async function(board, player) {
         if (_.indexOf(m, i) < 0) continue;
         r.push({
             pos: i,
-            weight: p[i]
+            weight: p.moves[i]
         });
     }
 
@@ -49,6 +49,10 @@ ai.prototype.move = async function(board, player) {
     });
 
     if (r.length == 0) return null;
+
+    if (!_.isUndefined(estimate) && !_.isUndefined(p.estimate)) {
+        estimate.push(p.estimate[0]);
+    }
     return r[0].pos;
 }
 

@@ -12,7 +12,7 @@ function ai(size, model, mode) {
     this.mode = mode;
 }
 
-ai.prototype.move = async function(board, player, f) {
+ai.prototype.move = async function(board, player, estimate) {
     let b = new Float32Array(this.size * this.size);
     for (let pos = 0; pos < this.size * this.size; pos++) {
         b[pos] = board[pos] * player;
@@ -20,9 +20,9 @@ ai.prototype.move = async function(board, player, f) {
 
     let w = await model.predict(this.model, b, this.size);
     if (this.mode == 1) {
-        forced.analyze(board, player, this.size, w);
+        forced.analyze(board, player, this.size, w.moves);
     } else {
-        hints.analyze(board, player, this.size, w);
+        hints.analyze(board, player, this.size, w.moves);
     }
 
     let moves = []; let total = 0;
@@ -30,9 +30,9 @@ ai.prototype.move = async function(board, player, f) {
         if (Math.abs(board[p]) < 0.01) {
             moves.push({
                 pos: p,
-                weight: w[p]
+                weight: w.moves[p]
             });
-            total += w[p];
+            total += w.moves[p];
         }
     }
 
@@ -53,6 +53,9 @@ ai.prototype.move = async function(board, player, f) {
         }
     }
 
+    if (!_.isUndefined(estimate) && !_.isUndefined(w.estimate)) {
+        estimate.push(w.estimate[0]);
+    }
     return moves[ix].pos;
 }
 
