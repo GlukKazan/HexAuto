@@ -46,6 +46,7 @@ async function predictEx(model, board, size) {
     };
 }
 
+module.exports.PLANE_COUNT = PLANE_COUNT;
 module.exports.load = load;
 module.exports.predict = predict;
 module.exports.predictEx = predictEx;

@@ -4,20 +4,17 @@ const _ = require('underscore');
 
 const model = require('./model');
 const forced = require('./forced');
-const hints = require('./hints');
+const encoder = require('./encoder');
 const utils = require('./utils');
 
-function ai(size, model, mode) {
+function ai(size, model) {
     this.size = size;
     this.model = model;
-    this.mode = mode;
 }
 
 ai.prototype.move = async function(board, player, estimate) {
-    let b = new Float32Array(this.size * this.size);
-    for (let pos = 0; pos < this.size * this.size; pos++) {
-        b[pos] = board[pos] * player;
-    }
+    let b = new Float32Array(this.size * this.size * model.PLANE_COUNT);
+    encoder.encode(board, this.size, player, b);
 
     let m = utils.getMoves(b, this.size);
     if (m.length == this.size * this.size) {
@@ -28,11 +25,7 @@ ai.prototype.move = async function(board, player, estimate) {
 //  utils.dump(board, this.size, 0);
     let p = await model.predict(this.model, b, this.size);
 //  utils.dump(board, this.size, 0, p.moves);
-    if (this.mode == 1) {
-        forced.analyze(board, player, this.size, p.moves);
-    } else {
-        hints.analyze(board, player, this.size, p.moves);
-    }
+    forced.analyze(board, player, this.size, p.moves);
 //  utils.dump(board, this.size, 0, p);
 
     let r = [];
