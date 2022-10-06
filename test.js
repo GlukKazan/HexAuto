@@ -1,6 +1,7 @@
 "use strict";
 
 const model = require('./model');
+const encoder = require('./encoder');
 const utils = require('./utils');
 
 const SIZE   = 11;
@@ -12,10 +13,8 @@ async function run() {
     const board = new Float32Array(SIZE * SIZE);
     utils.InitializeFromFen(FEN, board, SIZE, PLAYER);
 
-    let b = new Float32Array(SIZE * SIZE);
-    for (let pos = 0; pos < SIZE * SIZE; pos++) {
-        b[pos] = board[pos] * PLAYER;
-    }
+    let b = new Float32Array(SIZE * SIZE * model.PLANE_COUNT);
+    encoder.encode(board, SIZE, PLAYER, b);
 
     const m = await model.load(URL);
     const p = await model.predictEx(m, b, SIZE);

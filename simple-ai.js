@@ -7,26 +7,27 @@ const forced = require('./forced');
 const encoder = require('./encoder');
 const utils = require('./utils');
 
-function ai(size, model) {
+function ai(size, model, planes) {
     this.size = size;
     this.model = model;
+    this.planes = planes;
 }
 
 ai.prototype.move = async function(board, player, estimate) {
-    let b = new Float32Array(this.size * this.size * model.PLANE_COUNT);
-    encoder.encode(board, this.size, player, b);
+    let b = new Float32Array(this.size * this.size * this.planes);
+    encoder.encode(board, this.size, player, this.planes, b);
 
-    let m = utils.getMoves(b, this.size);
+    let m = utils.getMoves(board, this.size);
     if (m.length == this.size * this.size) {
         const ix = _.random(0, m.length - 1);
         return m[ix];
     }
 
 //  utils.dump(board, this.size, 0);
-    let p = await model.predict(this.model, b, this.size);
+    let p = await model.predictEx(this.model, b, this.size, this.planes);
 //  utils.dump(board, this.size, 0, p.moves);
     forced.analyze(board, player, this.size, p.moves);
-//  utils.dump(board, this.size, 0, p);
+//  utils.dump(board, this.size, 0, p.moves);
 
     let r = [];
     for (let i = 0; i < this.size * this.size; i++) {
@@ -49,8 +50,8 @@ ai.prototype.move = async function(board, player, estimate) {
     return r[0].pos;
 }
 
-function create(size, model) {
-    return new ai(size, model);
+function create(size, model, planes) {
+    return new ai(size, model, planes);
 }
 
 module.exports.create = create;

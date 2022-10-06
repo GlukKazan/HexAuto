@@ -2,9 +2,7 @@
 
 const tf = require('@tensorflow/tfjs');
 
-const PLANE_COUNT = 1;
-
-let model = null;
+let isReady = false;
 
 async function init() {
     await tf.ready();
@@ -12,10 +10,11 @@ async function init() {
 }
 
 async function load(url) {
-    if (model === null) {
+    if (!isReady) {
         await init();
-        model = await tf.loadLayersModel(url);
+        isReady = true;
     }
+    const model = await tf.loadLayersModel(url);
     return model;
 }
 
@@ -31,8 +30,8 @@ async function predict(model, board, size) {
     };
 }
 
-async function predictEx(model, board, size) {
-    const shape = [1, PLANE_COUNT, size, size];
+async function predictEx(model, board, size, planes) {
+    const shape = [1, planes, size, size];
     const xs = tf.tensor4d(board, shape, 'float32');
     const ys = await model.predict(xs);
     const m = await ys[0].data();
@@ -46,7 +45,6 @@ async function predictEx(model, board, size) {
     };
 }
 
-module.exports.PLANE_COUNT = PLANE_COUNT;
 module.exports.load = load;
 module.exports.predict = predict;
 module.exports.predictEx = predictEx;

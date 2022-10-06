@@ -6,16 +6,17 @@ const model = require('./model');
 const forced = require('./forced');
 const encoder = require('./encoder');
 
-function ai(size, model) {
+function ai(size, model, planes) {
     this.size = size;
     this.model = model;
+    this.planes = planes;
 }
 
 ai.prototype.move = async function(board, player, estimate) {
-    let b = new Float32Array(this.size * this.size);
-    encoder.encode(board, this.size, player, b);
+    let b = new Float32Array(this.size * this.size * this.planes);
+    encoder.encode(board, this.size, player, this.planes, b);
 
-    let w = await model.predict(this.model, b, this.size);
+    let w = await model.predictEx(this.model, b, this.size, this.planes);
     forced.analyze(board, player, this.size, w.moves);
 
     let moves = []; let total = 0;
@@ -52,8 +53,8 @@ ai.prototype.move = async function(board, player, estimate) {
     return moves[ix].pos;
 }
 
-function create(size, model) {
-    return new ai(size, model);
+function create(size, model, planes) {
+    return new ai(size, model, planes);
 }
 
 module.exports.create = create;

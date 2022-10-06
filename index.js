@@ -43,7 +43,8 @@ function estimate(v) {
         r = '-';
         v = -v;
     }
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 2; i++) {
+        if (Math.abs(v) < 0.01) break;
         v = v * 10;
         r = r + (v | 0);
     }
@@ -54,8 +55,8 @@ async function run() {
     const model_a = await model.load(URL_A);
     const model_b = await model.load(URL_B);
 
-    const a = ai.create(SIZE, model_a);
-    const b = ai.create(SIZE, model_b);
+    const a = ai.create(SIZE, model_a, 1);
+    const b = ai.create(SIZE, model_b, 2);
 
     const t0 = Date.now();
     let w = 0; let l = 0;

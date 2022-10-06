@@ -1,9 +1,7 @@
 "use strict";
 
-const ml = require('./model');
-
-function encode(board, size, player, out) {
-    if (ml.PLANE_COUNT == 1) {
+function encode(board, size, player, planes, out) {
+    if (planes == 1) {
         for (let pos = 0; pos < size * size; pos++) {
             out[pos] = board[pos] * player;
         }
