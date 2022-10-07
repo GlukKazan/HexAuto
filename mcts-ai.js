@@ -117,6 +117,12 @@ ai.prototype.move = async function(board, player, estimate) {
     let b = new Float32Array(this.size * this.size * this.planes);
     encoder.encode(board, this.size, player, this.planes, b);
 
+    let m = utils.getMoves(board, this.size);
+    if (m.length == this.size * this.size) {
+        const ix = _.random(0, m.length - 1);
+        return m[ix];
+    }
+
     let w = await model.predictEx(this.model, b, this.size, this.planes);
     hints.analyze(board, player, this.size, w.moves);
 //  utils.dump(board, this.size, 0, w.moves);
