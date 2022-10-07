@@ -134,8 +134,9 @@ function FormatMove(move, size) {
     return LETTERS[col] + LETTERS[row].toLowerCase();
 }
 
-function getMoves(board, size) {
+function getMoves(board, size, moves) {
     return _.filter(_.range(size * size), function(pos) {
+        if (_.isUndefined(moves) && (_.indexOf(moves, pos) >= 0)) return false;
         return Math.abs(board[pos]) < EPS;
     });
 }
