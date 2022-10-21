@@ -2,6 +2,7 @@
 
 const ai = require('./sample-ai');
 const mcts = require('./mcts-ai');
+const encoder = require('./encoder');
 const model = require('./model');
 const utils = require('./utils');
 
@@ -56,8 +57,8 @@ async function run() {
     const model_a = await model.load(URL_A);
     const model_b = await model.load(URL_B);
 
-    const b = ai.create(SIZE, model_a, 1);
-    const a = mcts.create(SIZE, model_b, 2);
+    const a = ai.create(SIZE, model_a, 1);
+    const b = mcts.create(SIZE, model_b, 1);
 
     const t0 = Date.now();
     let w = 0; let l = 0;
@@ -68,14 +69,14 @@ async function run() {
         for (let j = 0; j < (SIZE * SIZE) / 2; j++) {
             let player = 1;
             let e = [];
-            let m = await a.move(board, player, e);
+            let m = await a.move(board, player, e, logger);
             if (m === null) break;
             if (e.length > 0) {
                 r = r + estimate(e[0]);
             }
             r = r + utils.FormatMove(m, SIZE);
             board[m] = player;
-            let g = utils.checkGoal(board, player, SIZE);
+            let g = utils.checkGoal(board, SIZE);
             if (g !== null) {
                 if (g > 0) {
                     w++;
@@ -86,7 +87,7 @@ async function run() {
                     console.log('Lose [1]: ' + r);
                     logger.info('Lose [1]: ' + r);
                 }
-                utils.dump(board, SIZE, 0);
+                utils.dump(board, SIZE);
                 const fen = utils.getFen(board, SIZE, 1);
                 console.log('FEN: ' + fen);
                 logger.info('FEN: ' + fen);
@@ -95,14 +96,16 @@ async function run() {
 
             player = -1;
             e = [];
-            m = await b.move(board, player, e);
+            m = await b.move(board, player, e, logger);
             if (m === null) break;
             if (e.length > 0) {
                 r = r + estimate(e[0]);
             }
             r = r + utils.FormatMove(m, SIZE);
             board[m] = player;
-            g = utils.checkGoal(board, player, SIZE);
+            let reversed = new Float32Array(SIZE * SIZE);
+            encoder.encode(board, SIZE, player, 1, reversed);
+            g = utils.checkGoal(reversed, SIZE);
             if (g !== null) {
                 if (g < 0) {
                     w++;
@@ -113,7 +116,7 @@ async function run() {
                     console.log('Lose [2]:' + r);
                     logger.info('Lose [2]:' + r);
                 }
-                utils.dump(board, SIZE, 0);
+                utils.dump(board, SIZE);
                 const fen = utils.getFen(board, SIZE, 1);
                 console.log('FEN: ' + fen);
                 logger.info('FEN: ' + fen);

@@ -7,21 +7,27 @@ const EPS = 0.001;
 
 let edges = null;
 
-function dump(board, size, offset, moves) {
+function dump(board, size, moves, player) {
+    if (_.isUndefined(player)) {
+        player = 1;
+    }
     for (let y = 0; y < size; y++) {
         let s = '';
         for (let i = 0; i <= y; i++) {
             s = s + ' ';
         }
         for (let x = 0; x < size; x++) {
-            const pos = y * size + x;
-            if (board[offset + pos] > 0) {
+            let pos = y * size + x;
+            if (!_.isUndefined(player) && (player < 0)) {
+                pos = x * size + y;
+            }
+            if (board[pos] * player > 0) {
                 s = s + '* ';
-            } else if (board[offset + pos] < 0) {
+            } else if (board[pos] * player < 0) {
                 s = s + 'o ';
-            }  else if (!_.isUndefined(moves) && (moves[offset + pos] > 1 / (size * size))) {
+            }  else if (!_.isUndefined(moves) && (moves[pos] > 1 / (size * size))) {
                 s = s + '+ ';
-            }  else if (!_.isUndefined(moves) && (moves[offset + pos] < -1 / (size * size))) {
+            }  else if (!_.isUndefined(moves) && (moves[pos] < -1 / (size * size))) {
                 s = s + 'X ';
             }  else {
                 s = s + '. ';
@@ -101,7 +107,7 @@ function getFen(board, size, player) {
     return str;
 }
 
-function InitializeFromFen(fen, board, size, player) {
+function InitializeFromFen(fen, board, size) {
     let pos = 0;
     for (let i = 0; i < fen.length; i++) {
         const c = fen[i];
@@ -171,7 +177,7 @@ function getDirs(size) {
     return [-size, -size + 1, 1, size, size - 1, -1];
 }
 
-function checkGoal(board, player, size) {
+function checkGoal(board, size) {
     if (edges === null) {
         edges = [];
         let e = [];
@@ -205,7 +211,7 @@ function checkGoal(board, player, size) {
             group.push(p);
         });
     }
-    if (f) return player;
+    if (f) return 1;
     ix += 2;
     group = [];
     _.each(edges[ix], function(p) {
@@ -224,7 +230,7 @@ function checkGoal(board, player, size) {
             group.push(p);
         });
     }
-    if (f) return -player;
+    if (f) return -1;
     return null;
 }
 

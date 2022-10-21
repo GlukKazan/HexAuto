@@ -23,11 +23,11 @@ ai.prototype.move = async function(board, player, estimate) {
         return m[ix];
     }
 
-//  utils.dump(board, this.size, 0);
-    let p = await model.predictEx(this.model, b, this.size, this.planes);
-//  utils.dump(board, this.size, 0, p.moves);
+//  utils.dump(board, this.size);
+    let p = await model.predict(this.model, b, this.size, this.planes);
+//  utils.dump(board, this.size, p.moves);
     forced.analyze(board, player, this.size, p.moves);
-//  utils.dump(board, this.size, 0, p.moves);
+//  utils.dump(board, this.size, p.moves);
 
     let r = [];
     for (let i = 0; i < this.size * this.size; i++) {

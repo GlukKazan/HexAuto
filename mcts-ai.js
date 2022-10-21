@@ -95,11 +95,11 @@ function simulate(board, player, size, move) {
             const m = moves[ix];
             undo.push(m);
             board[m] = p;
-//          utils.dump(board, size, 0);
+//          utils.dump(board, size);
             p = -p;
         }
     }
-    const g = utils.checkGoal(board, player, size);
+    const g = utils.checkGoal(board, size);
     _.each(undo, function(p) {
         board[p] = 0;
     });
@@ -112,20 +112,22 @@ function ai(size, model, planes) {
     this.planes = planes;
 }
 
-ai.prototype.move = async function(board, player, estimate) {
+ai.prototype.move = async function(inp, player, estimate, logger) {
     const t0 = Date.now();
     let b = new Float32Array(this.size * this.size * this.planes);
-    encoder.encode(board, this.size, player, this.planes, b);
+    encoder.encode(inp, this.size, player, this.planes, b);
+    let board = new Float32Array(this.size * this.size);
+    encoder.encode(inp, this.size, player, 1, board);
 
     let m = utils.getMoves(board, this.size);
     if (m.length == this.size * this.size) {
         const ix = _.random(0, m.length - 1);
-        return m[ix];
+        return encoder.flip(m[ix], this.size, player);
     }
 
-    let w = await model.predictEx(this.model, b, this.size, this.planes);
-    hints.analyze(board, player, this.size, w.moves);
-//  utils.dump(board, this.size, 0, w.moves);
+    let w = await model.predict(this.model, b, this.size, this.planes);
+    hints.analyze(board, 1, this.size, w.moves);
+//  utils.dump(board, this.size, w.moves, player);
 
     let moves = utils.getMoves(board, this.size);
     const root = new Node(moves);
@@ -150,10 +152,24 @@ ai.prototype.move = async function(board, player, estimate) {
         return -c.n;
     });
 
+    let mx = r[0].w; let ix = 0;
+    for (let i = 0; i < r.length; i++) {
+        const m = encoder.flip(r[i].move, this.size, player);
+/*      console.log(utils.FormatMove(m, this.size) + ': n = ' + r[i].n + ', w = ' + r[i].w + ', p = ' + r[i].p + ', e = ' + w.estimate);
+        if (logger) {
+            logger.info(utils.FormatMove(m, this.size) + ': n = ' + r[i].n + ', w = ' + r[i].w + ', p = ' + r[i].p + ', e = ' + w.estimate);
+        }*/
+        if (r[i].w > mx) {
+            mx = r[i].w;
+            ix = i;
+        }
+        if (i >= 9) break;
+    }
+
     if (!_.isUndefined(estimate) && !_.isUndefined(w.estimate)) {
         estimate.push(w.estimate[0]);
     }
-    return r[0].move;
+    return encoder.flip(r[ix].move, this.size, player);
 }
 
 function create(size, model, planes) {

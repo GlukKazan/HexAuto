@@ -23,7 +23,7 @@ ai.prototype.move = async function(board, player, estimate) {
         return m[ix];
     }
 
-    let w = await model.predictEx(this.model, b, this.size, this.planes);
+    let w = await model.predict(this.model, b, this.size, this.planes);
     forced.analyze(board, player, this.size, w.moves);
 
     let moves = []; let total = 0;
