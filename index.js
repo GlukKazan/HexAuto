@@ -109,12 +109,12 @@ async function run() {
             if (g !== null) {
                 if (g < 0) {
                     w++;
-                    console.log('Won [2]:' + r);
-                    logger.info('Won [2]:' + r);
+                    console.log('Won [2]: ' + r);
+                    logger.info('Won [2]: ' + r);
                 } else {
                     l++;
-                    console.log('Lose [2]:' + r);
-                    logger.info('Lose [2]:' + r);
+                    console.log('Lose [2]: ' + r);
+                    logger.info('Lose [2]: ' + r);
                 }
                 utils.dump(board, SIZE);
                 const fen = utils.getFen(board, SIZE, 1);
